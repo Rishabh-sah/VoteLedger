@@ -2,7 +2,10 @@ App = {
   web3Provider: null,
   contracts: {},
   account: '0x0',
+  started: false,
   hasVoted: false,
+  votingEnded: false,
+
 
   init: function() {
     return App.initWeb3();
@@ -51,15 +54,17 @@ App = {
   //     });
   //   });
   // },
+ 
 
   render: function() {
     var electionInstance;
     var loader = $("#loader");
     var content = $("#content");
-
+    var x;
+    var end;
     loader.show();
     content.hide();
-
+    $('#end').hide();
     // Load account data
     web3.eth.getCoinbase(function(err, account) {
       if (err === null) {
@@ -67,15 +72,16 @@ App = {
         $("#accountAddress").html("Your Account: " + account);
       }
     });
-
     // Load contract data
     App.contracts.Election.deployed().then(function(instance) {
       electionInstance = instance;
+      return electionInstance.ended();
+    }).then(function(ended){
+      end=ended;
       return electionInstance.candidatesCount();
     }).then(function(candidatesCount) {
       var candidatesResults = $("#candidatesResults");
       candidatesResults.empty();
-
       var candidatesSelect = $('#candidatesSelect');
       candidatesSelect.empty();
 
@@ -86,23 +92,59 @@ App = {
           var voteCount = candidate[2];
 
           // Render candidate Result
+          if(end){
           var candidateTemplate = "<tr><th>" + id + "</th><td>" + name + "</td><td>" + voteCount + "</td></tr>"
           candidatesResults.append(candidateTemplate);
+          }
+          else{
+            var candidateTemplate = "<tr><th>" + id + "</th><td>" + name + "</td><td>Hidden</td></tr>"
+          candidatesResults.append(candidateTemplate);
+          }
 
           // Render candidate ballot option
-          var candidateOption = "<option value='" + id + "' >" + name + "</ option>"
+          var candidateOption = "<option value='" + id + "' >" + id + ".  " + name + "</ option>"
           candidatesSelect.append(candidateOption);
         });
       }
-      return electionInstance.voters(App.account);
-    }).then(function(hasVoted) {
+      return electionInstance.started();
+    }).then(function(started) {
      // Do not allow a user to vote
-      if(hasVoted) {
-        $('form').hide();
+     x=started;
+     if(!started){
+      $("#form").hide();
+    }
+    else{
+      $("#form").show();
+      $('#start').hide();
+      $('#beginning').hide();
+    }
+    return electionInstance.voters(App.account);
+  }).then( function(hasVoted){
+     if(hasVoted) {
+        $('#form').hide();
       }
+      return electionInstance.ended();
+    }).then( function(ended){
+      //issue here
+      
+      if(!ended && x){
+         $('#end').show();
+         $('#start').hide();
+       }
+       else{
+         $("#end").hide();
+         $('#start').show();
+       } 
+       return electionInstance.admin();
+     }).then( function(admin){
+      if(admin!=App.account || end){
+        $("#end").hide();
+        $("#start").hide();
+        $("#beginning").hide();
+      }   
       loader.hide();
-      content.show();
-    }).catch(function(error) {
+      content.show();  
+     }).catch(function(error) {
       console.warn(error);
     });
   
@@ -119,15 +161,48 @@ App = {
     }).catch(function(err) {
       console.error(err);
     });
+  },
+   addCandidate: function(){
+    var candidateName=$('#name').val();
+    App.contracts.Election.deployed().then(function(instance){
+      return instance.addCandidate(candidateName,{from: App.account})
+    }).then(function(result) {
+      // Wait for candidates to get added
+      $("#content").hide();
+      $("#loader").show();
+    }).catch(function(err) {
+      console.error(err);
+    });
+  },
+  begin: function(){
+    App.contracts.Election.deployed().then(function(instance){
+      return instance.start({from: App.account})
+    }).then(function(result) {
+      // Wait for election to start
+      $("#content").hide();
+      $("#loader").show();  
+    }).catch(function(err) {
+      console.error(err);
+    });
+  },
+  finish: function(){
+    App.contracts.Election.deployed().then(function(instance){
+      return instance.end({from : App.account})
+    }).then(function(result) {
+      // Wait for election to start
+      $("#content").hide();
+      $("#loader").show();  
+    }).catch(function(err) {
+      console.error(err);
+    });
   }
 };
 
 $(function() {
-  $(window).load(function() {
+  $( window).load(function() {
     App.init();
   });
 });
-
 
 window.addEventListener('load', async () => {
   // Modern dapp browsers...

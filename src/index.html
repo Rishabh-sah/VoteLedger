@@ -24,9 +24,18 @@
           <h1 class="text-center">Welcome Voter</h1>
           <hr/>
           <br/>
+
           <div id="loader">
             <p class="text-center"><strong>Loading...</strong>(reload if it take too long)</p>
           </div>
+          
+          <div id="beginning">
+            <form onSubmit="App.addCandidate()" id="addCand">
+            <input id="name" type='text' class='form-control' style="width:25vw"><br>
+            <button id="addCandi" class='btn btn-primary'>Add Candidate</button>
+            </form>
+          </div>
+
           <div id="content" style="display: none;">
             <table class="table">
               <thead>
@@ -40,7 +49,7 @@
               </tbody>
             </table>
             <hr/>
-
+<div id="form">
             <form onSubmit="App.castVote(); return false;">
               <div class="form-group">
                 <label for="candidatesSelect">Select Candidate</label>
@@ -49,7 +58,15 @@
               </div>
               <button type="submit" class="btn btn-primary">Vote</button>
               <hr />
-            </form>
+            </form></div>
+            <div>
+              <form onSubmit="App.begin()" id="start">
+                <button id="begin" class='btn btn-success' >Start Election</button>
+                </form>
+              <form onSubmit="App.finish()" id='end'>
+                <button class='btn btn-danger'>End Election</button>
+              </form>
+            </div>
 
            
             
